@@ -2,8 +2,10 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import donorRoutes from "./routes/donorRoutes.js";
 
 const app = express();
 
@@ -36,5 +38,6 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/donors", donorRoutes);
 
 export default app;
