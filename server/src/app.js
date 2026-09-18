@@ -8,6 +8,8 @@ import userRoutes from "./routes/userRoutes.js";
 import donorRoutes from "./routes/donorRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import matchActionRoutes from "./routes/matchActionRoutes.js";
 
 const app = express();
 
@@ -43,5 +45,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/donors", donorRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/matches", matchRoutes);
+app.use("/api/match-actions", matchActionRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 export default app;
