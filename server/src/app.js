@@ -12,6 +12,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import matchActionRoutes from "./routes/matchActionRoutes.js";
 import myMatchRoutes from "./routes/myMatchRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import requesterMatchRoutes from "./routes/requesterMatchRoutes.js";
 const app = express();
 
 app.use(helmet());
@@ -50,4 +51,5 @@ app.use("/api/match-actions", matchActionRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/my-matches", myMatchRoutes);
 app.use("/api/contacts", contactRoutes);
+app.use("/api/request-matches", requesterMatchRoutes);
 export default app;
