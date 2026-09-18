@@ -4,7 +4,7 @@ import {
     markNotificationAsRead,
 } from "../controllers/notificationController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
-
+import { getUnreadNotificationCount } from "../controllers/donorNotificationController.js";
 const router = express.Router();
 
 router.get(
@@ -12,7 +12,11 @@ router.get(
     authenticate,
     getMyNotifications
 );
-
+router.get(
+    "/unread-count",
+    authenticate,
+    getUnreadNotificationCount
+);
 router.patch(
     "/:notificationId/read",
     authenticate,
