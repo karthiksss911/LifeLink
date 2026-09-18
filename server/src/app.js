@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import donorRoutes from "./routes/donorRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
+import matchRoutes from "./routes/matchRoutes.js";
 
 const app = express();
 
@@ -41,5 +42,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/donors", donorRoutes);
 app.use("/api/requests", requestRoutes);
+app.use("/api/matches", matchRoutes);
 
 export default app;
