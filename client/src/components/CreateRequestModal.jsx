@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "./Button.jsx";
 import { X, MapPin, Loader2 } from "lucide-react";
 
@@ -22,6 +22,13 @@ export default function CreateRequestModal({
   const [error, setError] = useState("");
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationDetected, setLocationDetected] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSubmitting(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -85,12 +92,17 @@ export default function CreateRequestModal({
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (submitting || loading) return;
+
     setError("");
 
     if (!form.latitude || !form.longitude) {
       setError("Please detect the hospital/request location before submitting.");
       return;
     }
+
+    setSubmitting(true);
 
     try {
       await onSubmit({
@@ -103,6 +115,7 @@ export default function CreateRequestModal({
       onClose();
     } catch (err) {
       setError(err.message || "Failed to create blood request");
+      setSubmitting(false);
     }
   }
 
@@ -274,7 +287,7 @@ export default function CreateRequestModal({
             >
               {locationLoading ? (
                 <>
-                  <Loader2 size={16} />
+                  <Loader2 size={16} className="spin" />
                   DETECTING...
                 </>
               ) : (
@@ -360,10 +373,16 @@ export default function CreateRequestModal({
             <Button
               variant="coral"
               type="submit"
-              disabled={loading || locationLoading}
-              loading={loading}
+              disabled={submitting || loading || locationLoading}
             >
-              FIND ELIGIBLE DONORS →
+              {submitting || loading ? (
+                <>
+                  <Loader2 size={16} className="spin" />
+                  FINDING ELIGIBLE DONORS...
+                </>
+              ) : (
+                "FIND ELIGIBLE DONORS →"
+              )}
             </Button>
           </div>
         </form>
