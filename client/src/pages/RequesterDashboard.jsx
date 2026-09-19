@@ -165,6 +165,21 @@ export default function RequesterDashboard() {
     try {
       const res = await api.patch(`/api/match-actions/${matchId}/complete`, {});
       if (res?.success) {
+        // Immediately update local state to hide contact details and show completion banner
+        setRequestMatches((prevMatches) =>
+          prevMatches.map((m) => {
+            const mId = m.match_id || m.matchId || m.id;
+            if (mId === matchId) {
+              return {
+                ...m,
+                status: "completed",
+                match_status: "completed",
+                matchStatus: "completed",
+              };
+            }
+            return m;
+          })
+        );
         await fetchMyRequests(false);
         if (activeRequestId) {
           await fetchRequestMatches(activeRequestId);

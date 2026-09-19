@@ -104,9 +104,9 @@ export default function MatchCard({
       </div>
 
       <div>
-        {role === "requester" && (
+        {role === "requester" && !isCompleted && (
           <ProtectedContact
-            isAccepted={isAccepted || isCompleted}
+            isAccepted={isAccepted}
             contact={contactData}
             onFetchContact={handleViewContact}
             loadingContact={loadingContact}
@@ -137,7 +137,7 @@ export default function MatchCard({
           </div>
         )}
 
-        {role === "requester" && isAccepted && onCompleteMatch && (
+        {role === "requester" && isAccepted && !isCompleted && onCompleteMatch && (
           <div style={{ marginTop: "16px" }}>
             <Button
               variant="lime"
