@@ -1,4 +1,4 @@
-# 🩸 LifeLink
+#  LifeLink
 
 > **Real-Time Emergency Blood Donation & Dispatch Platform**
 
@@ -6,14 +6,14 @@ LifeLink is a modern, high-reliability web application engineered to bridge the 
 
 ---
 
-## 🌟 Key Features
+##  Key Features
 
-- **⚡ Emergency Blood Dispatching**: Requesters can dispatch urgent blood requests with automatic GPS location detection, hospital details, required blood units, and urgency levels (`LOW`, `NORMAL`, `HIGH`, `CRITICAL`).
-- **📍 PostGIS Spatial Matching**: Intelligent geospatial algorithms automatically calculate proximity using PostgreSQL/PostGIS (`geography` & `ST_SetSRID`), scanning compatible blood groups within a 25 km radius.
-- **🛡️ Idempotent Request Protection**: Concurrency-safe backend transaction locking (`pg_advisory_xact_lock`) and frontend guards prevent duplicate submissions on rapid clicks.
-- **🔒 Privacy-Protected Contact Exchange**: Donor contact details remain locked until a donor explicitly accepts a match, protecting user privacy.
-- **🩸 Donor Management & Dashboard**: Donors can track donation history, update availability status, log completed donations, and respond to live emergency alerts.
-- **🔔 Notification System**: Automated real-time notifications alert eligible donors immediately when a compatible emergency request is created nearby.
+- * Emergency Blood Dispatching**: Requesters can dispatch urgent blood requests with automatic GPS location detection, hospital details, required blood units, and urgency levels (`LOW`, `NORMAL`, `HIGH`, `CRITICAL`).
+- * PostGIS Spatial Matching**: Intelligent geospatial algorithms automatically calculate proximity using PostgreSQL/PostGIS (`geography` & `ST_SetSRID`), scanning compatible blood groups within a 25 km radius.
+- ** Idempotent Request Protection**: Concurrency-safe backend transaction locking (`pg_advisory_xact_lock`) and frontend guards prevent duplicate submissions on rapid clicks.
+- ** Privacy-Protected Contact Exchange**: Donor contact details remain locked until a donor explicitly accepts a match, protecting user privacy.
+- ** Donor Management & Dashboard**: Donors can track donation history, update availability status, log completed donations, and respond to live emergency alerts.
+- ** Notification System**: Automated real-time notifications alert eligible donors immediately when a compatible emergency request is created nearby.
 
 ---
 
