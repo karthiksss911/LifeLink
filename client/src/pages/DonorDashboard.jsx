@@ -19,25 +19,70 @@ export default function DonorDashboard() {
   const [updatingAvailability, setUpdatingAvailability] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [acceptingMatchId, setAcceptingMatchId] = useState(null);
+  const [decliningMatchId, setDecliningMatchId] = useState(null);
 
   useEffect(() => {
+    let isCancelled = false;
+
+    async function fetchDashboardData() {
+      const token = localStorage.getItem("lifelink_token");
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // 1. Fetch donor profile
+        try {
+          const profRes = await api.get("/api/donors/profile");
+          if (!isCancelled && profRes?.profile) {
+            setProfile(profRes.profile);
+          }
+        } catch (_err) {
+          // Profile not created yet
+        }
+
+        // 2. Fetch my donor matches
+        try {
+          const matchRes = await api.get("/api/my-matches");
+          if (!isCancelled && matchRes?.matches) {
+            setMatches(matchRes.matches);
+          }
+        } catch (err) {
+          if (!isCancelled) {
+            console.log("Error fetching matches", err);
+          }
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
     fetchDashboardData();
-  }, []);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user]);
 
   async function fetchDashboardData() {
+    const token = localStorage.getItem("lifelink_token");
+    if (!token) return;
+
     setLoading(true);
     try {
-      // 1. Fetch donor profile
       try {
         const profRes = await api.get("/api/donors/profile");
         if (profRes?.profile) {
           setProfile(profRes.profile);
         }
-      } catch (err) {
-        console.log("No profile yet");
+      } catch (_err) {
+        // Profile not created yet
       }
 
-      // 2. Fetch my donor matches
       try {
         const matchRes = await api.get("/api/my-matches");
         if (matchRes?.matches) {
@@ -93,7 +138,7 @@ export default function DonorDashboard() {
         // Update local state to reflect accepted status
         setMatches((prev) =>
           prev.map((m) =>
-            (m.match_id || m.id) === matchId ? { ...m, status: "accepted" } : m
+            (m.match_id || m.matchId || m.id) === matchId ? { ...m, status: "accepted" } : m
           )
         );
       }
@@ -101,6 +146,24 @@ export default function DonorDashboard() {
       alert(err.message || "Failed to accept request");
     } finally {
       setAcceptingMatchId(null);
+    }
+  }
+
+  async function handleDeclineMatch(matchId) {
+    setDecliningMatchId(matchId);
+    try {
+      const res = await api.patch(`/api/match-actions/${matchId}/decline`, {});
+      if (res?.success) {
+        setMatches((prev) =>
+          prev.map((m) =>
+            (m.match_id || m.matchId || m.id) === matchId ? { ...m, status: "declined" } : m
+          )
+        );
+      }
+    } catch (err) {
+      alert(err.message || "Failed to decline request");
+    } finally {
+      setDecliningMatchId(null);
     }
   }
 
@@ -190,13 +253,15 @@ export default function DonorDashboard() {
             />
           ) : (
             <div className="cards-grid">
-              {matches.map((m) => (
+              {matches.map((m, idx) => (
                 <MatchCard
-                  key={m.match_id || m.id}
+                  key={m.match_id || m.matchId || m.id || `match-${idx}`}
                   match={m}
                   role="donor"
                   onAccept={handleAcceptMatch}
-                  loadingAccept={acceptingMatchId === (m.match_id || m.id)}
+                  onDecline={handleDeclineMatch}
+                  loadingAccept={acceptingMatchId === (m.match_id || m.matchId || m.id)}
+                  loadingDecline={decliningMatchId === (m.match_id || m.matchId || m.id)}
                 />
               ))}
             </div>

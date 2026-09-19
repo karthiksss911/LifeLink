@@ -1,6 +1,12 @@
 import { Lock, Unlock, Phone, Mail, UserCheck } from "lucide-react";
 
-export default function ProtectedContact({ isAccepted, contact, onFetchContact, loadingContact }) {
+export default function ProtectedContact({
+  isAccepted,
+  contact,
+  onFetchContact,
+  loadingContact,
+  error,
+}) {
   if (!isAccepted) {
     return (
       <div className="protected-contact-box">
@@ -25,15 +31,16 @@ export default function ProtectedContact({ isAccepted, contact, onFetchContact, 
           </div>
           {!contact && onFetchContact && (
             <button
+              type="button"
               onClick={onFetchContact}
               disabled={loadingContact}
               style={{
                 background: "var(--ink)",
                 color: "var(--paper)",
                 border: 0,
-                padding: "3px 8px",
+                padding: "4px 10px",
                 fontFamily: "var(--font-mono)",
-                fontSize: "10px",
+                fontSize: "11px",
                 cursor: "pointer",
                 fontWeight: 700,
               }}
@@ -42,6 +49,12 @@ export default function ProtectedContact({ isAccepted, contact, onFetchContact, 
             </button>
           )}
         </div>
+
+        {error && (
+          <div style={{ fontSize: "12px", color: "var(--danger)", marginTop: "6px", fontWeight: 600 }}>
+            {error}
+          </div>
+        )}
 
         {contact ? (
           <div style={{ marginTop: "8px", fontSize: "13px", display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -60,9 +73,11 @@ export default function ProtectedContact({ isAccepted, contact, onFetchContact, 
             )}
           </div>
         ) : (
-          <div style={{ fontSize: "12px", color: "var(--ink-soft)", marginTop: "2px" }}>
-            Click button above to view revealed phone & email.
-          </div>
+          !error && (
+            <div style={{ fontSize: "12px", color: "var(--ink-soft)", marginTop: "2px" }}>
+              Click button above to view revealed phone & email.
+            </div>
+          )
         )}
       </div>
     </div>

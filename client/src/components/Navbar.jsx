@@ -4,32 +4,36 @@ import Brand from "./Brand.jsx";
 import Button from "./Button.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../services/api.js";
-import { LogOut, Bell, LayoutDashboard, HeartHandshake, ListOrdered } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    if (user) {
-      fetchUnreadCount();
-      const interval = setInterval(fetchUnreadCount, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
   async function fetchUnreadCount() {
+    const token = localStorage.getItem("lifelink_token");
+    if (!token) return;
+
     try {
       const data = await api.get("/api/notifications/unread-count");
       if (data && data.unreadCount !== undefined) {
         setUnreadCount(data.unreadCount);
       }
-    } catch (err) {
-      // Silent error fallback
+    } catch (_err) {
+      // Silent error fallback for unauthenticated states
     }
   }
+
+  useEffect(() => {
+    const token = localStorage.getItem("lifelink_token");
+    if (user && isAuthenticated && token) {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user, isAuthenticated]);
 
   function handleLogout() {
     logout();

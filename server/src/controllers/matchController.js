@@ -117,12 +117,19 @@ export async function matchDonorsToRequest(req, res) {
 
             matches.push({
                 matchId: match.id,
+                match_id: match.id,
+                id: match.id,
                 donorId: donor.donor_id,
+                donor_id: donor.donor_id,
                 donorProfileId: donor.donor_profile_id,
+                donor_profile_id: donor.donor_profile_id,
                 bloodGroup: donor.blood_group,
+                blood_group: donor.blood_group,
                 city: donor.city,
                 distanceKm: donor.distance_km,
+                distance_km: donor.distance_km,
                 status: match.status,
+                match_status: match.status,
             });
         }
 

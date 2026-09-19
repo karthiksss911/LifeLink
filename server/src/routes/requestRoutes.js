@@ -10,14 +10,12 @@ const router = express.Router();
 router.post(
     "/",
     authenticate,
-    requireRole("requester", "admin"),
     createBloodRequest
 );
 
 router.get(
     "/mine",
     authenticate,
-    requireRole("requester", "admin"),
     getMyBloodRequests
 );
 

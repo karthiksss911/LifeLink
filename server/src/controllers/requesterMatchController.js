@@ -37,10 +37,15 @@ export async function getRequestMatches(req, res) {
             `
       SELECT
         dm.id AS match_id,
+        dm.id AS "matchId",
+        dm.id AS id,
         dm.distance_km,
+        dm.distance_km AS "distanceKm",
         dm.match_reason,
         dm.status AS match_status,
+        dm.status AS status,
         dp.blood_group,
+        dp.blood_group AS "bloodGroup",
         dp.city,
         dp.is_available
       FROM donor_matches dm

@@ -6,11 +6,16 @@ export async function getMyMatches(req, res) {
             `
       SELECT
         dm.id AS match_id,
+        dm.id AS "matchId",
+        dm.id AS id,
         dm.request_id,
         dm.distance_km,
+        dm.distance_km AS "distanceKm",
         dm.match_reason,
         dm.status,
+        dm.status AS match_status,
         br.blood_group,
+        br.blood_group AS "bloodGroup",
         br.units_required,
         br.hospital_name,
         br.hospital_address,

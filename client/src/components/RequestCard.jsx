@@ -9,7 +9,8 @@ export default function RequestCard({
   loadingMatch = false,
   activeRequestId = null,
 }) {
-  const isSelected = activeRequestId === request.id;
+  const reqId = request.id || request.request_id;
+  const isSelected = activeRequestId === reqId;
 
   return (
     <div
@@ -29,7 +30,7 @@ export default function RequestCard({
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div className="blood-type-badge">{request.blood_group}</div>
             <div>
-              <div className="tech-label">REQUEST ID #{request.id.slice(0, 8)}</div>
+              <div className="tech-label">REQUEST ID #{(reqId || "").slice(0, 8)}</div>
               <h3 style={{ fontSize: "20px", margin: "2px 0 0" }}>{request.hospital_name}</h3>
             </div>
           </div>
@@ -72,7 +73,7 @@ export default function RequestCard({
           variant="primary"
           size="sm"
           style={{ flex: 1 }}
-          onClick={() => onFindDonors(request.id)}
+          onClick={() => onFindDonors && onFindDonors(reqId)}
           disabled={loadingMatch}
           icon={Zap}
         >
@@ -83,7 +84,7 @@ export default function RequestCard({
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => onViewMatches(request.id)}
+            onClick={() => onViewMatches && onViewMatches(reqId)}
             icon={Users}
           >
             VIEW MATCHES

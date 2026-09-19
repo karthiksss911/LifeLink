@@ -71,7 +71,7 @@ export default function App() {
           <Route
             path="/create-request"
             element={
-              <ProtectedRoute allowedRole="requester">
+              <ProtectedRoute>
                 <CreateRequest />
               </ProtectedRoute>
             }

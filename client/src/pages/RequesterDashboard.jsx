@@ -81,6 +81,7 @@ export default function RequesterDashboard() {
   }
 
   async function handleFetchContactDetails(matchId) {
+    if (!matchId) return null;
     return await api.get(`/api/contacts/${matchId}`);
   }
 
@@ -148,9 +149,9 @@ export default function RequesterDashboard() {
             />
           ) : (
             <div className="cards-grid" style={{ marginBottom: "40px" }}>
-              {requests.map((req) => (
+              {requests.map((req, idx) => (
                 <RequestCard
-                  key={req.id}
+                  key={req.id || req.request_id || `req-${idx}`}
                   request={req}
                   onFindDonors={handleFindDonors}
                   onViewMatches={handleViewMatches}
@@ -163,17 +164,17 @@ export default function RequesterDashboard() {
 
           {/* MATCHING ALGORITHM VISUALIZATION */}
           {activeRequest && (
-            <>
+            <div key={`vis-${activeRequest.id}`}>
               <div className="divider-h-strong" />
               <MatchingVisualization activeStep={4} />
-            </>
+            </div>
           )}
 
           {/* MATCHED DONORS RESULTS */}
           {activeRequest && (
             <div style={{ marginTop: "40px" }}>
               <SectionHeader
-                category={`MATCH RESULTS FOR REQUEST #${activeRequest.id.slice(0, 8)}`}
+                category={`MATCH RESULTS FOR REQUEST #${(activeRequest.id || "").slice(0, 8)}`}
                 title={`Eligible Donors (${requestMatches.length})`}
                 subtitle={`Sorted by proximity to ${activeRequest.hospital_name}. Donor contact details remain protected until accepted.`}
               />
@@ -188,9 +189,9 @@ export default function RequesterDashboard() {
                 />
               ) : (
                 <div className="cards-grid">
-                  {requestMatches.map((m) => (
+                  {requestMatches.map((m, idx) => (
                     <MatchCard
-                      key={m.match_id || m.id}
+                      key={m.match_id || m.matchId || m.id || m.donor_id || m.donorId || `match-${idx}`}
                       match={{
                         ...m,
                         units_required: activeRequest.units_required,

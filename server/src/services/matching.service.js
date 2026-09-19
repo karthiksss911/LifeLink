@@ -62,12 +62,22 @@ export async function findEligibleDonors({
       dp.blood_group,
       dp.city,
       dp.is_available,
-      dp.location
+      dp.location,
+      dp.last_donation_date,
+      dp.minimum_donation_interval_days
 
     HAVING
-      MAX(dh.donation_date) IS NULL
-      OR MAX(dh.donation_date) <=
-  CURRENT_DATE - $5::integer
+      (
+        dp.last_donation_date IS NULL
+        AND MAX(dh.donation_date) IS NULL
+      )
+      OR
+      (
+        GREATEST(
+          COALESCE(dp.last_donation_date, '1970-01-01'::date),
+          COALESCE(MAX(dh.donation_date), '1970-01-01'::date)
+        ) <= CURRENT_DATE - COALESCE(dp.minimum_donation_interval_days, $5)::integer
+      )
 
     ORDER BY distance_km ASC
 

@@ -17,10 +17,12 @@ async function request(endpoint, options = {}) {
         },
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
+        const err = new Error(data.message || "Something went wrong");
+        err.status = response.status;
+        throw err;
     }
 
     return data;

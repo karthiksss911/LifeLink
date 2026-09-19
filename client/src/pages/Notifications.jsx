@@ -71,8 +71,8 @@ export default function Notifications() {
             />
           ) : (
             <div className="notification-list">
-              {notifications.map((n) => (
-                <NotificationItem key={n.id} notification={n} onMarkRead={handleMarkRead} />
+              {notifications.map((n, idx) => (
+                <NotificationItem key={n.id || n.notification_id || `notif-${idx}`} notification={n} onMarkRead={handleMarkRead} />
               ))}
             </div>
           )}

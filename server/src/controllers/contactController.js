@@ -17,6 +17,8 @@ export async function getAcceptedDonorContact(req, res) {
         ON dp.id = dm.donor_id
       INNER JOIN users u
         ON u.id = dp.user_id
+      INNER JOIN blood_requests br
+        ON br.id = dm.request_id
       WHERE dm.id = $1
         AND dm.status = 'accepted'
       LIMIT 1

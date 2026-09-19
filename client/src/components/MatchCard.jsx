@@ -8,33 +8,43 @@ export default function MatchCard({
   match,
   role = "donor",
   onAccept,
+  onDecline,
   onFetchContact,
   loadingAccept = false,
+  loadingDecline = false,
 }) {
   const [contactData, setContactData] = useState(null);
   const [loadingContact, setLoadingContact] = useState(false);
+  const [contactError, setContactError] = useState("");
 
-  const isAccepted = match.status === "accepted" || match.match_status === "accepted";
+  const rawStatus = match.status || match.match_status || match.matchStatus || "matched";
+  const status = rawStatus.toLowerCase();
+  const isAccepted = status === "accepted";
+  const isDeclined = status === "declined";
   const bloodGroup = match.blood_group || match.bloodGroup || "O+";
   const distanceKm = match.distance_km || match.distanceKm || "0.0";
   const hospitalName = match.hospital_name || match.city || "District Medical Center";
   const hospitalAddress = match.hospital_address || "";
   const urgency = match.urgency || "normal";
   const unitsRequired = match.units_required || 1;
+  const matchId = match.match_id || match.matchId || match.id;
 
   async function handleViewContact() {
-    if (onFetchContact) {
-      setLoadingContact(true);
-      try {
-        const res = await onFetchContact(match.match_id || match.id);
-        if (res && res.contact) {
-          setContactData(res.contact);
-        }
-      } catch (err) {
-        console.error("Failed to fetch contact", err);
-      } finally {
-        setLoadingContact(false);
+    if (!isAccepted || !onFetchContact || !matchId) return;
+
+    setContactError("");
+    setLoadingContact(true);
+    try {
+      const res = await onFetchContact(matchId);
+      if (res && res.contact) {
+        setContactData(res.contact);
+      } else {
+        setContactError(res?.message || "Unable to fetch donor contact");
       }
+    } catch (err) {
+      setContactError(err.message || "Failed to fetch contact");
+    } finally {
+      setLoadingContact(false);
     }
   }
 
@@ -94,18 +104,28 @@ export default function MatchCard({
           contact={contactData}
           onFetchContact={handleViewContact}
           loadingContact={loadingContact}
+          error={contactError}
         />
 
-        {role === "donor" && !isAccepted && (
-          <div style={{ marginTop: "16px" }}>
+        {role === "donor" && !isAccepted && !isDeclined && (
+          <div style={{ marginTop: "16px", display: "flex", gap: "8px" }}>
             <Button
               variant="coral"
               size="lg"
-              style={{ width: "100%" }}
-              onClick={() => onAccept && onAccept(match.match_id || match.id)}
-              disabled={loadingAccept}
+              style={{ flex: 1 }}
+              onClick={() => onAccept && onAccept(matchId)}
+              disabled={loadingAccept || loadingDecline}
             >
-              ACCEPT REQUEST <ArrowRight size={18} />
+              ACCEPT <ArrowRight size={16} />
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              style={{ flex: 1 }}
+              onClick={() => onDecline && onDecline(matchId)}
+              disabled={loadingAccept || loadingDecline}
+            >
+              DECLINE
             </Button>
           </div>
         )}
@@ -113,6 +133,12 @@ export default function MatchCard({
         {isAccepted && (
           <div style={{ marginTop: "12px", textAlign: "center" }} className="tech-label text-lime">
             ✓ MATCH ACCEPTED & LOCKED
+          </div>
+        )}
+
+        {isDeclined && (
+          <div style={{ marginTop: "12px", textAlign: "center", color: "var(--coral-dark)" }} className="tech-label">
+            ✕ REQUEST DECLINED
           </div>
         )}
       </div>

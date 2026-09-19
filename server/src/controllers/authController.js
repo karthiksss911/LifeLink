@@ -76,7 +76,7 @@ export async function register(req, res) {
 
         return res.status(500).json({
             success: false,
-            message: "Unable to create account",
+            message: error.message || "Unable to create account",
         });
     }
 }

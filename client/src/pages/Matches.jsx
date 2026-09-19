@@ -13,6 +13,7 @@ export default function Matches() {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acceptingMatchId, setAcceptingMatchId] = useState(null);
+  const [decliningMatchId, setDecliningMatchId] = useState(null);
 
   useEffect(() => {
     fetchMatches();
@@ -63,7 +64,7 @@ export default function Matches() {
       if (res?.success) {
         setMatches((prev) =>
           prev.map((m) =>
-            (m.match_id || m.id) === matchId ? { ...m, status: "accepted" } : m
+            (m.match_id || m.matchId || m.id) === matchId ? { ...m, status: "accepted" } : m
           )
         );
       }
@@ -74,7 +75,26 @@ export default function Matches() {
     }
   }
 
+  async function handleDeclineMatch(matchId) {
+    setDecliningMatchId(matchId);
+    try {
+      const res = await api.patch(`/api/match-actions/${matchId}/decline`, {});
+      if (res?.success) {
+        setMatches((prev) =>
+          prev.map((m) =>
+            (m.match_id || m.matchId || m.id) === matchId ? { ...m, status: "declined" } : m
+          )
+        );
+      }
+    } catch (err) {
+      alert(err.message || "Failed to decline match");
+    } finally {
+      setDecliningMatchId(null);
+    }
+  }
+
   async function handleFetchContactDetails(matchId) {
+    if (!matchId) return null;
     return await api.get(`/api/contacts/${matchId}`);
   }
 
@@ -107,14 +127,16 @@ export default function Matches() {
             />
           ) : (
             <div className="cards-grid">
-              {matches.map((m) => (
+              {matches.map((m, idx) => (
                 <MatchCard
-                  key={m.match_id || m.id}
+                  key={m.match_id || m.matchId || m.id || `match-${idx}`}
                   match={m}
                   role={user?.role || "donor"}
                   onAccept={handleAcceptMatch}
+                  onDecline={handleDeclineMatch}
                   onFetchContact={handleFetchContactDetails}
-                  loadingAccept={acceptingMatchId === (m.match_id || m.id)}
+                  loadingAccept={acceptingMatchId === (m.match_id || m.matchId || m.id)}
+                  loadingDecline={decliningMatchId === (m.match_id || m.matchId || m.id)}
                 />
               ))}
             </div>

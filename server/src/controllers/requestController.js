@@ -12,27 +12,20 @@ const requestSchema = z.object({
         "O+",
         "O-",
     ]),
-    unitsRequired: z.number().int().min(1).max(20),
+    unitsRequired: z.coerce.number().int().min(1).max(20),
     hospitalName: z.string().min(2).max(200),
     hospitalAddress: z.string().min(2).max(300),
-    latitude: z.number().min(-90).max(90),
-    longitude: z.number().min(-180).max(180),
+    latitude: z.coerce.number().min(-90).max(90),
+    longitude: z.coerce.number().min(-180).max(180),
     urgency: z
         .enum(["low", "normal", "high", "critical"])
         .default("normal"),
-    notes: z.string().max(1000).optional().default(""),
+    notes: z.string().max(1000).optional().nullable().transform((v) => v || ""),
 });
 
 export async function createBloodRequest(req, res) {
     try {
         const data = requestSchema.parse(req.body);
-
-        if (!["requester", "admin"].includes(req.user.role)) {
-            return res.status(403).json({
-                success: false,
-                message: "Only requesters can create blood requests",
-            });
-        }
 
         const result = await query(
             `INSERT INTO blood_requests
@@ -64,6 +57,8 @@ export async function createBloodRequest(req, res) {
          units_required,
          hospital_name,
          hospital_address,
+         ST_Y(location::geometry) AS latitude,
+         ST_X(location::geometry) AS longitude,
          urgency,
          notes,
          status,
@@ -113,6 +108,8 @@ export async function getMyBloodRequests(req, res) {
          units_required,
          hospital_name,
          hospital_address,
+         ST_Y(location::geometry) AS latitude,
+         ST_X(location::geometry) AS longitude,
          urgency,
          notes,
          status,
