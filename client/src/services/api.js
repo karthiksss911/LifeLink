@@ -1,10 +1,11 @@
-const API_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:5000";
+const rawApiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = rawApiUrl.replace(/\/+$/, "").replace(/\/api$/i, "");
 
 async function request(endpoint, options = {}) {
     const token = localStorage.getItem("lifelink_token");
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetch(`${API_URL}${cleanEndpoint}`, {
         ...options,
         headers: {
             "Content-Type": "application/json",
