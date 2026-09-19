@@ -95,11 +95,6 @@ export default function Navbar() {
           )}
 
           <div className="nav-right">
-            <div className="api-status-pill">
-              <span className="status-dot" />
-              <span>API CONNECTED</span>
-            </div>
-
             {user ? (
               <div className="user-nav-profile">
                 <span className="user-role-badge">{role.toUpperCase()}</span>
@@ -119,7 +114,7 @@ export default function Navbar() {
                 </Link>
                 <Link to="/register">
                   <Button variant="coral" size="sm">
-                    JOIN LIFELINE
+                    JOIN LIFELINK
                   </Button>
                 </Link>
               </div>

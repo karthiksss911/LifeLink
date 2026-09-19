@@ -15,6 +15,12 @@ router.post(
 );
 
 router.get(
+    "/",
+    authenticate,
+    getMyBloodRequests
+);
+
+router.get(
     "/mine",
     authenticate,
     getMyBloodRequests

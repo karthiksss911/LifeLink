@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { query } from "../db/pool.js";
+import { query, pool } from "../db/pool.js";
 import { findEligibleDonors } from "../services/matching.service.js";
 import { createNotification } from "../services/notification.service.js";
 
@@ -26,10 +26,68 @@ const requestSchema = z.object({
 });
 
 export async function createBloodRequest(req, res) {
+    const client = await pool.connect();
     try {
         const data = requestSchema.parse(req.body);
+        const requesterId = req.user.id;
 
-        const result = await query(
+        await client.query("BEGIN");
+
+        // Transaction advisory lock for this requester ID to ensure serial execution per user
+        await client.query(
+            `SELECT pg_advisory_xact_lock(hashtext('create_blood_request_' || $1))`,
+            [requesterId]
+        );
+
+        // Check if an identical request was created within the last 30 seconds
+        const duplicateCheck = await client.query(
+            `SELECT
+                id,
+                requester_id,
+                blood_group,
+                units_required,
+                units_fulfilled,
+                hospital_name,
+                hospital_address,
+                ST_Y(location::geometry) AS latitude,
+                ST_X(location::geometry) AS longitude,
+                urgency,
+                notes,
+                status,
+                created_at,
+                updated_at
+             FROM blood_requests
+             WHERE requester_id = $1
+               AND status IN ('open', 'partially_fulfilled')
+               AND blood_group = $2
+               AND hospital_name = $3
+               AND hospital_address = $4
+               AND units_required = $5
+               AND created_at >= NOW() - INTERVAL '30 seconds'
+             ORDER BY created_at DESC
+             LIMIT 1`,
+            [
+                requesterId,
+                data.bloodGroup,
+                data.hospitalName,
+                data.hospitalAddress,
+                data.unitsRequired,
+            ]
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+            await client.query("COMMIT");
+            const existingRequest = duplicateCheck.rows[0];
+            console.log(`[REQUEST] Duplicate request blocked for user ${requesterId}, existing request ID: ${existingRequest.id}`);
+            return res.status(200).json({
+                success: true,
+                duplicate: true,
+                message: "A similar blood request was just created.",
+                request: existingRequest,
+            });
+        }
+
+        const result = await client.query(
             `INSERT INTO blood_requests
         (
           requester_id,
@@ -66,7 +124,7 @@ export async function createBloodRequest(req, res) {
          status,
          created_at`,
             [
-                req.user.id,
+                requesterId,
                 data.bloodGroup,
                 data.unitsRequired,
                 data.hospitalName,
@@ -78,9 +136,11 @@ export async function createBloodRequest(req, res) {
             ]
         );
 
+        await client.query("COMMIT");
+
         const createdRequest = result.rows[0];
 
-        // Automatically trigger donor matching for the new request
+        // Automatically trigger donor matching ONCE for the newly created request
         try {
             console.log(`[MATCH] request created: ${createdRequest.id}`);
 
@@ -140,10 +200,12 @@ export async function createBloodRequest(req, res) {
 
         return res.status(201).json({
             success: true,
+            duplicate: false,
             message: "Blood request created successfully",
             request: createdRequest,
         });
     } catch (error) {
+        await client.query("ROLLBACK").catch(() => {});
         if (error instanceof z.ZodError) {
             return res.status(400).json({
                 success: false,
@@ -158,6 +220,8 @@ export async function createBloodRequest(req, res) {
             success: false,
             message: "Unable to create blood request",
         });
+    } finally {
+        client.release();
     }
 }
 

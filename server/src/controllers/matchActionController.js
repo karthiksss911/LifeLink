@@ -215,7 +215,7 @@ export async function completeMatch(req, res) {
             });
         }
 
-        // 1. Record donation in donation_history (donor_id references donor_profiles.id)
+        // 1. Record donation in donation_history (donor_id references users.id)
         await client.query(
             `
       INSERT INTO donation_history
@@ -224,7 +224,7 @@ export async function completeMatch(req, res) {
         ($1, CURRENT_DATE, $2, $3)
       `,
             [
-                matchRecord.donor_id,
+                matchRecord.donor_user_id,
                 matchRecord.hospital_name,
                 `Donation completed for LifeLink request ${matchRecord.request_id}`,
             ]
@@ -267,7 +267,7 @@ export async function completeMatch(req, res) {
       UPDATE blood_requests
       SET
         units_fulfilled = $1,
-        status = $2::request_status,
+        status = $2,
         updated_at = NOW()
       WHERE id = $3
       `,

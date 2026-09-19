@@ -18,6 +18,7 @@ export default function RequesterDashboard() {
   const [cancellingRequestId, setCancellingRequestId] = useState(null);
   const [completingMatchId, setCompletingMatchId] = useState(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [creatingRequest, setCreatingRequest] = useState(false);
 
   const matchesSectionRef = useRef(null);
 
@@ -34,17 +35,30 @@ export default function RequesterDashboard() {
     }, 10000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (activeRequestId) {
+      fetchRequestMatches(activeRequestId);
+    }
   }, [activeRequestId]);
 
   async function fetchMyRequests(isInitial = false) {
-    if (isInitial) setLoading(true);
+    const token = localStorage.getItem("lifelink_token");
+    if (!token) {
+      if (isInitial) setLoading(false);
+      return;
+    }
+
     try {
-      const data = await api.get("/api/requests/mine");
-      if (data?.requests) {
-        setRequests(data.requests);
-        const targetReqId = activeRequestId || (data.requests.length > 0 ? data.requests[0].id : null);
-        if (targetReqId) {
-          fetchRequestMatches(targetReqId);
+      if (isInitial) setLoading(true);
+      const res = await api.get("/api/requests/mine");
+
+      if (res?.requests) {
+        setRequests(res.requests);
+
+        if (res.requests.length > 0 && !activeRequestId) {
+          setActiveRequestId(res.requests[0].id);
         }
       }
     } catch (err) {
@@ -66,25 +80,34 @@ export default function RequesterDashboard() {
   }
 
   async function handleCreateRequest(formData) {
+    if (creatingRequest) return;
+    setCreatingRequest(true);
+
     try {
       // 1. Create the blood request
       const res = await api.post("/api/requests", formData);
 
-      if (!res?.request?.id) {
+      const requestObj = res?.request;
+      if (!requestObj?.id) {
         throw new Error("Blood request was not created");
       }
 
-      const requestId = res.request.id;
+      const requestId = requestObj.id;
 
       // 2. Make this request the active request
       setActiveRequestId(requestId);
 
-      // 3. Automatically find eligible donors
-      // The requester should NOT have to click "Find Donors".
-      await api.post("/api/matches/find", {
-        requestId,
-        radiusKm: 25,
-      });
+      // 3. Automatically find eligible donors if not duplicate
+      if (!res.duplicate) {
+        try {
+          await api.post("/api/matches/find", {
+            requestId,
+            radiusKm: 25,
+          });
+        } catch (mErr) {
+          console.warn("Matching step warning:", mErr);
+        }
+      }
 
       // 4. Immediately load the real matches from the database
       await fetchRequestMatches(requestId);
@@ -99,10 +122,14 @@ export default function RequesterDashboard() {
           block: "start",
         });
       });
+
+      return res;
     } catch (err) {
       console.error("Create/match request error:", err);
       alert(err.message || "Failed to create and match blood request");
       throw err;
+    } finally {
+      setCreatingRequest(false);
     }
   }
 
@@ -284,6 +311,7 @@ export default function RequesterDashboard() {
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         onSubmit={handleCreateRequest}
+        loading={creatingRequest}
       />
     </div>
   );

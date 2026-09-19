@@ -22,15 +22,21 @@ export default function CreateRequestModal({
   const [error, setError] = useState("");
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationDetected, setLocationDetected] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setSubmitting(false);
+      setIsSubmitting(false);
+      setError("");
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  function handleCancel() {
+    if (isSubmitting || loading) return;
+    onClose();
+  }
 
   function handleChange(e) {
     const { name, value, type } = e.target;
@@ -91,9 +97,9 @@ export default function CreateRequestModal({
   }
 
   async function handleSubmit(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
 
-    if (submitting || loading) return;
+    if (isSubmitting || loading) return;
 
     setError("");
 
@@ -102,7 +108,7 @@ export default function CreateRequestModal({
       return;
     }
 
-    setSubmitting(true);
+    setIsSubmitting(true);
 
     try {
       await onSubmit({
@@ -115,12 +121,13 @@ export default function CreateRequestModal({
       onClose();
     } catch (err) {
       setError(err.message || "Failed to create blood request");
-      setSubmitting(false);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={isSubmitting || loading ? undefined : onClose}>
       <div
         className="modal-editorial"
         onClick={(e) => e.stopPropagation()}
@@ -136,8 +143,9 @@ export default function CreateRequestModal({
 
           <button
             className="modal-close-btn"
-            onClick={onClose}
+            onClick={handleCancel}
             type="button"
+            disabled={isSubmitting || loading}
           >
             <X size={18} />
           </button>
@@ -365,7 +373,8 @@ export default function CreateRequestModal({
             <Button
               variant="secondary"
               type="button"
-              onClick={onClose}
+              onClick={handleCancel}
+              disabled={isSubmitting || loading}
             >
               CANCEL
             </Button>
@@ -373,12 +382,13 @@ export default function CreateRequestModal({
             <Button
               variant="coral"
               type="submit"
-              disabled={submitting || loading || locationLoading}
+              disabled={isSubmitting || loading || locationLoading}
+              style={{ pointerEvents: isSubmitting || loading || locationLoading ? "none" : "auto" }}
             >
-              {submitting || loading ? (
+              {isSubmitting || loading ? (
                 <>
                   <Loader2 size={16} className="spin" />
-                  FINDING ELIGIBLE DONORS...
+                  MATCHING DONORS...
                 </>
               ) : (
                 "FIND ELIGIBLE DONORS →"

@@ -20,8 +20,11 @@ async function request(endpoint, options = {}) {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        const err = new Error(data.message || "Something went wrong");
+        const err = new Error(
+            data.message || data.error || `HTTP ${response.status}: ${response.statusText || "Request failed"}`
+        );
         err.status = response.status;
+        err.data = data;
         throw err;
     }
 

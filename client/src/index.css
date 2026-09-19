@@ -363,27 +363,6 @@ hr, .divider-h {
   gap: 20px;
 }
 
-.api-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background: #2F8F5B;
-  border-radius: 50%;
-  display: inline-block;
-  box-shadow: 0 0 8px rgba(47, 143, 91, 0.6);
-}
-
 .user-nav-profile {
   display: flex;
   align-items: center;
@@ -935,10 +914,6 @@ hr, .divider-h {
 @media (max-width: 640px) {
   .container-editorial {
     padding: 0 16px;
-  }
-
-  .nav-right .api-status-pill {
-    display: none;
   }
 
   .nav-links {
