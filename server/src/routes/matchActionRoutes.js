@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticate, requireRole } from "../middleware/authMiddleware.js";
-import { acceptMatch, declineMatch } from "../controllers/matchActionController.js";
+import { acceptMatch, declineMatch, completeMatch } from "../controllers/matchActionController.js";
 
 const router = express.Router();
 
@@ -16,6 +16,12 @@ router.patch(
     authenticate,
     requireRole("donor"),
     declineMatch
+);
+
+router.patch(
+    "/:matchId/complete",
+    authenticate,
+    completeMatch
 );
 
 export default router;

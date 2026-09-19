@@ -52,12 +52,23 @@ export async function matchDonorsToRequest(req, res) {
             });
         }
 
+        console.log(`[MATCH] finding matches for request: ${bloodRequest.id}`);
+
         const eligibleDonors = await findEligibleDonors({
             bloodGroup: bloodRequest.blood_group,
             latitude: Number(bloodRequest.latitude),
             longitude: Number(bloodRequest.longitude),
             radiusKm: data.radiusKm,
         });
+
+        console.log(`[MATCH] eligible donors: ${eligibleDonors.length}`);
+
+        let matchesCreated = 0;
+        let notificationsCreated = 0;
+
+        if (eligibleDonors.length === 0) {
+            console.log(`[MATCH] 0 eligible donors found within ${data.radiusKm}km for request ${bloodRequest.id}`);
+        }
 
         const matches = [];
 
@@ -85,6 +96,7 @@ export async function matchDonorsToRequest(req, res) {
             )
            VALUES
             ($1, $2, $3, $4::jsonb, 'matched')
+           ON CONFLICT (request_id, donor_id) DO NOTHING
            RETURNING
              id,
              request_id,
@@ -107,31 +119,40 @@ export async function matchDonorsToRequest(req, res) {
 
                 match = matchResult.rows[0];
 
-                await createNotification({
-                    userId: donor.donor_id,
-                    matchId: match.id,
-                    title: "Blood donation request nearby",
-                    message: `A ${bloodRequest.blood_group} blood request has matched you within ${donor.distance_km} km. Open the request to review and respond.`,
-                });
+                if (match) {
+                    matchesCreated++;
+                    const notif = await createNotification({
+                        userId: donor.donor_id,
+                        matchId: match.id,
+                        title: "Blood Request Near You",
+                        message: `Emergency request for ${bloodRequest.blood_group} blood (${donor.distance_km} km away).`,
+                    });
+                    if (notif) notificationsCreated++;
+                }
             }
 
-            matches.push({
-                matchId: match.id,
-                match_id: match.id,
-                id: match.id,
-                donorId: donor.donor_id,
-                donor_id: donor.donor_id,
-                donorProfileId: donor.donor_profile_id,
-                donor_profile_id: donor.donor_profile_id,
-                bloodGroup: donor.blood_group,
-                blood_group: donor.blood_group,
-                city: donor.city,
-                distanceKm: donor.distance_km,
-                distance_km: donor.distance_km,
-                status: match.status,
-                match_status: match.status,
-            });
+            if (match) {
+                matches.push({
+                    matchId: match.id,
+                    match_id: match.id,
+                    id: match.id,
+                    donorId: donor.donor_id,
+                    donor_id: donor.donor_id,
+                    donorProfileId: donor.donor_profile_id,
+                    donor_profile_id: donor.donor_profile_id,
+                    bloodGroup: donor.blood_group,
+                    blood_group: donor.blood_group,
+                    city: donor.city,
+                    distanceKm: donor.distance_km,
+                    distance_km: donor.distance_km,
+                    status: match.status,
+                    match_status: match.status,
+                });
+            }
         }
+
+        console.log(`[MATCH] matches created: ${matchesCreated}`);
+        console.log(`[MATCH] notifications created: ${notificationsCreated}`);
 
         return res.json({
             success: true,

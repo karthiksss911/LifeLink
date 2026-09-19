@@ -2,8 +2,9 @@ import express from "express";
 import {
     createBloodRequest,
     getMyBloodRequests,
+    cancelBloodRequest,
 } from "../controllers/requestController.js";
-import { authenticate, requireRole } from "../middleware/authMiddleware.js";
+import { authenticate } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -17,6 +18,12 @@ router.get(
     "/mine",
     authenticate,
     getMyBloodRequests
+);
+
+router.patch(
+    "/:requestId/cancel",
+    authenticate,
+    cancelBloodRequest
 );
 
 export default router;

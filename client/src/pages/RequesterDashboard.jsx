@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Navbar from "../components/Navbar.jsx";
 import RequestCard from "../components/RequestCard.jsx";
 import MatchCard from "../components/MatchCard.jsx";
@@ -8,68 +8,53 @@ import MatchingVisualization from "../components/MatchingVisualization.jsx";
 import CreateRequestModal from "../components/CreateRequestModal.jsx";
 import Button from "../components/Button.jsx";
 import { api } from "../services/api.js";
-import { Plus, RefreshCw, Users, Zap, Droplets } from "lucide-react";
+import { Plus, RefreshCw, Users, Droplets } from "lucide-react";
 
 export default function RequesterDashboard() {
   const [requests, setRequests] = useState([]);
   const [activeRequestId, setActiveRequestId] = useState(null);
   const [requestMatches, setRequestMatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [matchingLoading, setMatchingLoading] = useState(false);
+  const [cancellingRequestId, setCancellingRequestId] = useState(null);
+  const [completingMatchId, setCompletingMatchId] = useState(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
+  const matchesSectionRef = useRef(null);
+
   useEffect(() => {
-    fetchMyRequests();
+    fetchMyRequests(true);
   }, []);
 
-  async function fetchMyRequests() {
-    setLoading(true);
+  // Polling every 10 seconds while dashboard is open and visible
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchMyRequests(false);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [activeRequestId]);
+
+  async function fetchMyRequests(isInitial = false) {
+    if (isInitial) setLoading(true);
     try {
       const data = await api.get("/api/requests/mine");
       if (data?.requests) {
         setRequests(data.requests);
-        if (data.requests.length > 0 && !activeRequestId) {
-          handleViewMatches(data.requests[0].id);
+        const targetReqId = activeRequestId || (data.requests.length > 0 ? data.requests[0].id : null);
+        if (targetReqId) {
+          fetchRequestMatches(targetReqId);
         }
       }
     } catch (err) {
       console.log("Error fetching blood requests", err);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   }
 
-  async function handleCreateRequest(formData) {
-    const res = await api.post("/api/requests", formData);
-    if (res?.request) {
-      // Trigger donor matching automatically for the newly created request
-      await handleFindDonors(res.request.id);
-      await fetchMyRequests();
-    }
-  }
-
-  async function handleFindDonors(requestId) {
-    setMatchingLoading(true);
-    setActiveRequestId(requestId);
-    try {
-      const matchRes = await api.post("/api/matches/find", {
-        requestId,
-        radiusKm: 25,
-      });
-
-      if (matchRes?.matchedDonors) {
-        setRequestMatches(matchRes.matchedDonors);
-      }
-      await handleViewMatches(requestId);
-    } catch (err) {
-      alert(err.message || "Unable to match donors");
-    } finally {
-      setMatchingLoading(false);
-    }
-  }
-
-  async function handleViewMatches(requestId) {
-    setActiveRequestId(requestId);
+  async function fetchRequestMatches(requestId) {
     try {
       const res = await api.get(`/api/request-matches/${requestId}`);
       if (res?.matches) {
@@ -77,6 +62,91 @@ export default function RequesterDashboard() {
       }
     } catch (err) {
       console.log("Error fetching request matches", err);
+    }
+  }
+
+  async function handleCreateRequest(formData) {
+    try {
+      // 1. Create the blood request
+      const res = await api.post("/api/requests", formData);
+
+      if (!res?.request?.id) {
+        throw new Error("Blood request was not created");
+      }
+
+      const requestId = res.request.id;
+
+      // 2. Make this request the active request
+      setActiveRequestId(requestId);
+
+      // 3. Automatically find eligible donors
+      // The requester should NOT have to click "Find Donors".
+      await api.post("/api/matches/find", {
+        requestId,
+        radiusKm: 25,
+      });
+
+      // 4. Immediately load the real matches from the database
+      await fetchRequestMatches(requestId);
+
+      // 5. Refresh the request list from the database
+      await fetchMyRequests(false);
+
+      // 6. Scroll to the real eligible-donor section
+      requestAnimationFrame(() => {
+        matchesSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    } catch (err) {
+      console.error("Create/match request error:", err);
+      alert(err.message || "Failed to create and match blood request");
+      throw err;
+    }
+  }
+
+  async function handleCancelRequest(requestId) {
+    setCancellingRequestId(requestId);
+    try {
+      const res = await api.patch(`/api/requests/${requestId}/cancel`, {});
+      if (res?.success) {
+        setRequests((prev) =>
+          prev.map((r) =>
+            (r.id || r.request_id) === requestId ? { ...r, status: "cancelled" } : r
+          )
+        );
+        fetchMyRequests(false).catch(() => { });
+      }
+    } catch (err) {
+      alert(err.message || "Failed to cancel blood request");
+    } finally {
+      setCancellingRequestId(null);
+    }
+  }
+
+  async function handleViewMatches(requestId) {
+    setActiveRequestId(requestId);
+    await fetchRequestMatches(requestId);
+    if (matchesSectionRef.current) {
+      matchesSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  async function handleCompleteMatch(matchId) {
+    setCompletingMatchId(matchId);
+    try {
+      const res = await api.patch(`/api/match-actions/${matchId}/complete`, {});
+      if (res?.success) {
+        await fetchMyRequests(false);
+        if (activeRequestId) {
+          await fetchRequestMatches(activeRequestId);
+        }
+      }
+    } catch (err) {
+      alert(err.message || "Failed to complete donation");
+    } finally {
+      setCompletingMatchId(null);
     }
   }
 
@@ -110,7 +180,7 @@ export default function RequesterDashboard() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={fetchMyRequests}
+                  onClick={() => fetchMyRequests(true)}
                   disabled={loading}
                   icon={RefreshCw}
                 >
@@ -132,7 +202,7 @@ export default function RequesterDashboard() {
           <SectionHeader
             category="ACTIVE DISPATCH REQUESTS"
             title="Your Blood Requests"
-            subtitle="Manage emergency hospital requests and trigger real-time donor matching."
+            subtitle="Manage emergency hospital requests and view matched eligible donors."
           />
 
           {loading ? (
@@ -153,9 +223,9 @@ export default function RequesterDashboard() {
                 <RequestCard
                   key={req.id || req.request_id || `req-${idx}`}
                   request={req}
-                  onFindDonors={handleFindDonors}
                   onViewMatches={handleViewMatches}
-                  loadingMatch={matchingLoading && activeRequestId === req.id}
+                  onCancelRequest={handleCancelRequest}
+                  loadingCancel={cancellingRequestId === (req.id || req.request_id)}
                   activeRequestId={activeRequestId}
                 />
               ))}
@@ -172,7 +242,7 @@ export default function RequesterDashboard() {
 
           {/* MATCHED DONORS RESULTS */}
           {activeRequest && (
-            <div style={{ marginTop: "40px" }}>
+            <div style={{ marginTop: "40px" }} ref={matchesSectionRef}>
               <SectionHeader
                 category={`MATCH RESULTS FOR REQUEST #${(activeRequest.id || "").slice(0, 8)}`}
                 title={`Eligible Donors (${requestMatches.length})`}
@@ -182,10 +252,8 @@ export default function RequesterDashboard() {
               {requestMatches.length === 0 ? (
                 <EmptyState
                   icon={Users}
-                  title="No Matched Donors Yet"
-                  description="Click 'FIND DONORS' on your blood request card above to run the matching algorithm against registered district donors."
-                  actionText="RUN DONOR MATCHING ENGINE →"
-                  onAction={() => handleFindDonors(activeRequest.id)}
+                  title="No Eligible Donors Yet"
+                  description="Your request is active. We'll continue checking for eligible donors matching your district radius."
                 />
               ) : (
                 <div className="cards-grid">
@@ -199,7 +267,9 @@ export default function RequesterDashboard() {
                         hospital_name: activeRequest.hospital_name,
                       }}
                       role="requester"
+                      onCompleteMatch={handleCompleteMatch}
                       onFetchContact={handleFetchContactDetails}
+                      loadingComplete={completingMatchId === (m.match_id || m.matchId || m.id)}
                     />
                   ))}
                 </div>
@@ -218,3 +288,4 @@ export default function RequesterDashboard() {
     </div>
   );
 }
+

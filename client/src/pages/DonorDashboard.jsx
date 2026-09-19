@@ -9,7 +9,7 @@ import DonorProfileModal from "../components/DonorProfileModal.jsx";
 import Button from "../components/Button.jsx";
 import { api } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { Heart, RefreshCw, UserCheck, Activity, ShieldCheck } from "lucide-react";
+import { Heart, RefreshCw, ShieldCheck, MapPin, UserCheck } from "lucide-react";
 
 export default function DonorDashboard() {
   const { user } = useAuth();
@@ -66,6 +66,23 @@ export default function DonorDashboard() {
     return () => {
       isCancelled = true;
     };
+  }, [user]);
+
+  // Polling every 10 seconds while Donor Dashboard is active & visible
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden && user?.role === "donor") {
+        api.get("/api/my-matches")
+          .then((res) => {
+            if (res?.matches) {
+              setMatches(res.matches);
+            }
+          })
+          .catch(() => {});
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
   async function fetchDashboardData() {
@@ -193,7 +210,7 @@ export default function DonorDashboard() {
                 </h1>
               </div>
 
-              <div style={{ display: "flex", gap: "12px" }}>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                 <Button
                   variant="secondary"
                   size="sm"
@@ -203,25 +220,89 @@ export default function DonorDashboard() {
                 >
                   REFRESH
                 </Button>
-                <Button
-                  variant="lime"
-                  size="sm"
-                  onClick={() => setProfileModalOpen(true)}
-                  icon={ShieldCheck}
-                >
-                  {profile ? "EDIT PROFILE" : "SETUP PROFILE"}
-                </Button>
+                {!profile && (
+                  <Button
+                    variant="lime"
+                    size="sm"
+                    onClick={() => setProfileModalOpen(true)}
+                    icon={ShieldCheck}
+                  >
+                    SET UP DONOR PROFILE
+                  </Button>
+                )}
               </div>
             </div>
           </div>
 
+          {/* READ-ONLY DONOR PROFILE CARD (IF SETUP COMPLETED) */}
+          {profile && (
+            <div
+              style={{
+                background: "var(--surface, #f8f9fa)",
+                border: "1px solid rgba(20, 32, 28, 0.12)",
+                padding: "16px 20px",
+                marginBottom: "28px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "16px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                <div
+                  style={{
+                    background: "var(--coral)",
+                    color: "#fff",
+                    fontWeight: 800,
+                    fontSize: "20px",
+                    padding: "6px 14px",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {profile.blood_group}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: "15px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <UserCheck size={16} color="var(--lime-dark, #2e7d32)" /> Verified Donor Profile
+                  </div>
+                  <div style={{ fontSize: "13px", color: "rgba(20, 32, 28, 0.65)", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <MapPin size={14} /> {profile.city || "District Location"}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: "12px", fontFamily: "var(--font-mono)", color: "rgba(20, 32, 28, 0.5)", textTransform: "uppercase" }}>
+                Blood Group Verified • One-Time Setup Completed
+              </div>
+            </div>
+          )}
+
           {/* EDITORIAL STATS GRID */}
-          <div className="stats-grid">
-            <StatBlock label="TOTAL MATCHES" value={totalMatches.toString().padStart(2, "0")} />
-            <StatBlock label="PENDING MATCHES" value={pendingCount.toString().padStart(2, "0")} />
-            <StatBlock label="ACCEPTED REQUESTS" value={acceptedCount.toString().padStart(2, "0")} />
-            <StatBlock label="LAST DONATION" value="90+ DAYS" subtext="ELIGIBLE TO DONATE" highlight={true} />
-          </div>
+          {(() => {
+            let lastDonationVal = "NO RECORD";
+            let lastDonationSubtext = "ELIGIBLE TO DONATE";
+            if (profile?.last_donation_date) {
+              const lastDate = new Date(profile.last_donation_date);
+              const diffTime = Math.abs(new Date() - lastDate);
+              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              lastDonationVal = `${diffDays} DAYS AGO`;
+              const minInterval = profile.minimum_donation_interval_days || 90;
+              if (diffDays < minInterval) {
+                lastDonationSubtext = `ELIGIBLE IN ${minInterval - diffDays} DAYS`;
+              } else {
+                lastDonationSubtext = "ELIGIBLE TO DONATE";
+              }
+            }
+            return (
+              <div className="stats-grid">
+                <StatBlock label="TOTAL MATCHES" value={totalMatches.toString().padStart(2, "0")} />
+                <StatBlock label="PENDING MATCHES" value={pendingCount.toString().padStart(2, "0")} />
+                <StatBlock label="ACCEPTED REQUESTS" value={acceptedCount.toString().padStart(2, "0")} />
+                <StatBlock label="LAST DONATION" value={lastDonationVal} subtext={lastDonationSubtext} highlight={true} />
+              </div>
+            );
+          })()}
 
           {/* DONOR STATUS AVAILABILITY PANEL */}
           <div style={{ marginBottom: "40px" }}>
@@ -248,8 +329,8 @@ export default function DonorDashboard() {
               icon={Heart}
               title="No Pending Match Requests"
               description="There are currently no active blood donation dispatches matching your profile radius. Keep your status set to Available to receive real-time notifications."
-              actionText={!profile ? "CREATE DONOR PROFILE" : undefined}
-              onAction={() => setProfileModalOpen(true)}
+              actionText={!profile ? "SET UP DONOR PROFILE" : undefined}
+              onAction={!profile ? () => setProfileModalOpen(true) : undefined}
             />
           ) : (
             <div className="cards-grid">
@@ -269,13 +350,16 @@ export default function DonorDashboard() {
         </div>
       </main>
 
-      {/* DONOR PROFILE MODAL */}
-      <DonorProfileModal
-        isOpen={profileModalOpen}
-        onClose={() => setProfileModalOpen(false)}
-        onSave={handleSaveProfile}
-        initialData={profile}
-      />
+      {/* DONOR PROFILE SETUP MODAL (FIRST-TIME ONLY) */}
+      {!profile && (
+        <DonorProfileModal
+          isOpen={profileModalOpen}
+          onClose={() => setProfileModalOpen(false)}
+          onSave={handleSaveProfile}
+          initialData={profile}
+        />
+      )}
     </div>
   );
 }
+

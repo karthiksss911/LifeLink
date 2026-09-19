@@ -1,16 +1,19 @@
 import StatusBadge from "./StatusBadge.jsx";
 import Button from "./Button.jsx";
-import { MapPin, Users, Zap, Clock } from "lucide-react";
+import { MapPin, Users, Trash2, CheckCircle, XCircle } from "lucide-react";
 
 export default function RequestCard({
   request,
-  onFindDonors,
   onViewMatches,
-  loadingMatch = false,
+  onCancelRequest,
+  loadingCancel = false,
   activeRequestId = null,
 }) {
   const reqId = request.id || request.request_id;
   const isSelected = activeRequestId === reqId;
+  const isCancelled = request.status === "cancelled";
+  const isFulfilled = request.status === "fulfilled";
+  const canCancel = (request.status === "open" || request.status === "partially_fulfilled") && Boolean(onCancelRequest);
 
   return (
     <div
@@ -18,11 +21,12 @@ export default function RequestCard({
       style={{
         border: "1px solid var(--ink)",
         boxShadow: isSelected ? "8px 8px 0 var(--lime)" : "6px 6px 0 var(--coral)",
-        background: "var(--paper-light)",
+        background: isCancelled ? "rgba(240, 240, 240, 0.6)" : "var(--paper-light)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         gap: "16px",
+        opacity: isCancelled ? 0.75 : 1,
       }}
     >
       <div>
@@ -50,7 +54,9 @@ export default function RequestCard({
         <div className="card-info-grid" style={{ marginTop: "12px" }}>
           <div className="card-info-item">
             <span className="tech-label">UNITS REQUIRED</span>
-            <span className="card-info-val">{request.units_required} UNITS</span>
+            <span className="card-info-val">
+              {request.units_fulfilled ? `${request.units_fulfilled}/${request.units_required}` : request.units_required} UNITS
+            </span>
           </div>
 
           <div className="card-info-item">
@@ -68,29 +74,53 @@ export default function RequestCard({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: "16px" }}>
-        <Button
-          variant="primary"
-          size="sm"
-          style={{ flex: 1 }}
-          onClick={() => onFindDonors && onFindDonors(reqId)}
-          disabled={loadingMatch}
-          icon={Zap}
-        >
-          {loadingMatch ? "MATCHING..." : "FIND DONORS →"}
-        </Button>
-
-        {onViewMatches && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onViewMatches && onViewMatches(reqId)}
-            icon={Users}
+      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: "16px", alignItems: "center" }}>
+        {isCancelled ? (
+          <div
+            style={{
+              padding: "6px 14px",
+              background: "#FFE3E3",
+              border: "1px solid var(--danger)",
+              color: "var(--danger)",
+              fontWeight: 700,
+              fontSize: "12px",
+              fontFamily: "var(--font-mono)",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
           >
-            VIEW MATCHES
-          </Button>
+            <XCircle size={14} /> CANCELLED
+          </div>
+        ) : (
+          <>
+            {onViewMatches && (
+              <Button
+                variant="secondary"
+                size="sm"
+                style={{ flex: 1 }}
+                onClick={() => onViewMatches && onViewMatches(reqId)}
+                icon={Users}
+              >
+                VIEW MATCHES
+              </Button>
+            )}
+
+            {canCancel && (
+              <Button
+                variant="coral"
+                size="sm"
+                onClick={() => onCancelRequest && onCancelRequest(reqId)}
+                disabled={loadingCancel}
+                icon={Trash2}
+              >
+                {loadingCancel ? "CANCELLING..." : "REMOVE REQUEST"}
+              </Button>
+            )}
+          </>
         )}
       </div>
     </div>
   );
 }
+

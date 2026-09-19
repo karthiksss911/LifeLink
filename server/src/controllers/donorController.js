@@ -29,6 +29,23 @@ export async function createOrUpdateDonorProfile(req, res) {
             });
         }
 
+        // Check if donor profile already exists
+        const existingResult = await query(
+            `SELECT id, blood_group FROM donor_profiles WHERE user_id = $1 LIMIT 1`,
+            [req.user.id]
+        );
+
+        if (existingResult.rows.length > 0) {
+            const existingProfile = existingResult.rows[0];
+
+            if (existingProfile.blood_group !== data.bloodGroup) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Blood group cannot be modified after initial profile setup",
+                });
+            }
+        }
+
         const result = await query(
             `INSERT INTO donor_profiles
         (user_id, blood_group, location, city, is_available)
@@ -96,6 +113,8 @@ export async function getMyDonorProfile(req, res) {
          blood_group,
          city,
          is_available,
+         last_donation_date,
+         minimum_donation_interval_days,
          ST_Y(location::geometry) AS latitude,
          ST_X(location::geometry) AS longitude,
          created_at,

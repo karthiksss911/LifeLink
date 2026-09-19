@@ -10,13 +10,13 @@ export default function CreateRequest() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     bloodGroup: "O+",
-    unitsRequired: 2,
-    hospitalName: "City General Hospital",
-    hospitalAddress: "742 Evergreen Terrace, Central District",
-    latitude: 12.9716,
-    longitude: 77.5946,
-    urgency: "high",
-    notes: "Urgent surgical requirement. Donor needed within 4 hours.",
+    unitsRequired: 1,
+    hospitalName: "",
+    hospitalAddress: "",
+    latitude: "",
+    longitude: "",
+    urgency: "normal",
+    notes: "",
   });
 
   const [loading, setLoading] = useState(false);

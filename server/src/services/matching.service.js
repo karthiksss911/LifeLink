@@ -43,7 +43,7 @@ export async function findEligibleDonors({
       AND bc.compatible = TRUE
 
     LEFT JOIN donation_history dh
-      ON dh.donor_id = dp.user_id
+      ON dh.donor_id = dp.id OR dh.donor_id = dp.user_id
 
     WHERE dp.is_available = TRUE
 
