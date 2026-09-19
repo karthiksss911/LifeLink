@@ -15,14 +15,42 @@ import contactRoutes from "./routes/contactRoutes.js";
 import requesterMatchRoutes from "./routes/requesterMatchRoutes.js";
 const app = express();
 
-app.use(helmet());
-
 app.use(
-    cors({
-        origin: process.env.CLIENT_URL || "http://localhost:5173",
-        credentials: true,
+    helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" },
     })
 );
+
+const allowedOrigins = [
+    "https://life-link-phi-flax.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+];
+
+if (process.env.CLIENT_URL) {
+    const urls = process.env.CLIENT_URL.split(",").map((url) => url.trim().replace(/\/$/, ""));
+    urls.forEach((url) => {
+        if (url && !allowedOrigins.includes(url)) {
+            allowedOrigins.push(url);
+        }
+    });
+}
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`CORS policy: Origin ${origin} is not allowed`));
+        }
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json({ limit: "1mb" }));
 
